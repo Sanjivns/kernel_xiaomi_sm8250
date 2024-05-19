@@ -8994,6 +8994,7 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 }
 #endif
 
+#ifdef CONFIG_SCHED_WALT
 static inline bool can_migrate_boosted_task(struct task_struct *p,
 			int src_cpu, int dst_cpu)
 {
@@ -9003,7 +9004,7 @@ static inline bool can_migrate_boosted_task(struct task_struct *p,
 		return false;
 	return true;
 }
-
+#endif
 /*
  * can_migrate_task - may task p from runqueue rq be migrated to this_cpu?
  */
@@ -9024,12 +9025,13 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 	if (throttled_lb_pair(task_group(p), env->src_cpu, env->dst_cpu))
 		return 0;
 
+#ifdef CONFIG_SCHED_WALT
 	/*
 	 * don't allow pull boost task to smaller cores.
 	 */
 	if (!can_migrate_boosted_task(p, env->src_cpu, env->dst_cpu))
 		return 0;
-
+#endif
 	/* Disregard pcpu kthreads; they are where they need to be. */
 	if ((p->flags & PF_KTHREAD) && kthread_is_per_cpu(p))
 		return 0;
@@ -11111,10 +11113,7 @@ no_move:
 			 * if the curr task on busiest CPU can't be
 			 * moved to this_cpu:
 			 */
-			if (!cpumask_test_cpu(this_cpu,
-						&busiest->curr->cpus_allowed)
-				|| !can_migrate_boosted_task(busiest->curr,
-						cpu_of(busiest), this_cpu)) {
+			if (!cpumask_test_cpu(this_cpu, &busiest->curr->cpus_allowed)) {
 				raw_spin_unlock_irqrestore(&busiest->lock,
 							    flags);
 				env.flags |= LBF_ALL_PINNED;
